@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Lucky Wheel - MF Voice Party</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:#1e293b;
+  margin:10px;
+  padding:15px;
+  border-radius:10px;
+}
+
+.wheel{
+  width:200px;
+  height:200px;
+  border-radius:50%;
+  border:10px solid #00e5ff;
+  margin:auto;
+  line-height:200px;
+  font-size:20px;
+  transition:transform 3s ease;
+}
+
+button{
+  padding:10px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🎡 LUCKY WHEEL</h2>
+
+<div class="box">
+<p>Spin & Win Coins 🪙</p>
+
+<div id="wheel" class="wheel">SPIN</div>
+
+<button onclick="spin()">SPIN</button>
+
+<p>Coins: <span id="coins">0</span></p>
+</div>
+
+<script>
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+const uid = new URLSearchParams(location.search).get("uid");
+
+let coins = 0;
+
+// load user
+function loadUser(){
+
+  db.ref("users/"+uid).on("value", snap=>{
+    let data = snap.val();
+    if(!data) return;
+
+    coins = data.coins || 0;
+    document.getElementById("coins").innerText = coins;
+  });
+
+}
+
+// spin wheel
+function spin(){
+
+  let wheel = document.getElementById("wheel");
+
+  let reward = Math.floor(Math.random()*100) + 10;
+
+  let deg = 360 * 5 + Math.floor(Math.random()*360);
+
+  wheel.style.transform = "rotate("+deg+"deg)";
+
+  setTimeout(()=>{
+
+    coins += reward;
+
+    db.ref("users/"+uid).update({
+      coins: coins
+    });
+
+    document.getElementById("coins").innerText = coins;
+
+    alert("You won "+reward+" coins 🎉");
+
+  },3000);
+
+}
+
+loadUser();
+
+</script>
+
+</body>
+</html>
