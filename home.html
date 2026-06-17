@@ -1,69 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>MF Voice Party - Home</title>
+<title>Home</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
-}
-
-.header{
-  background:#1e293b;
-  padding:15px;
-}
-
-.box{
-  background:#1e293b;
-  margin:10px;
-  padding:10px;
-  border-radius:10px;
-}
-
-button{
-  padding:8px;
-  margin:5px;
-  background:#00e5ff;
-  border:none;
-  cursor:pointer;
-}
-
-input{
-  padding:8px;
-  width:60%;
-}
+body{background:#0f172a;color:white;font-family:Arial;text-align:center}
+.box{background:#1e293b;margin:10px;padding:10px;border-radius:10px}
+button{padding:8px;background:#00e5ff;border:none;cursor:pointer}
+input{padding:8px;width:60%}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<h2>🏠 MF Voice Party HOME</h2>
-</div>
+<h2>🏠 ROOM BOARD</h2>
 
-<!-- CREATE ROOM -->
 <div class="box">
-<h3>➕ Create Room</h3>
-<input id="roomName" placeholder="Enter Room Name">
+<h3>Create Room</h3>
+<input id="roomName">
 <button onclick="createRoom()">Create</button>
 </div>
 
-<!-- ROOM LIST -->
 <div class="box">
-<h3>🔥 Active Rooms</h3>
-<div id="roomList"></div>
+<h3>Rooms</h3>
+<div id="list"></div>
 </div>
 
 <script>
 
-// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
   authDomain: "global-voice-chat-app.firebaseapp.com",
@@ -72,50 +39,40 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const db = firebase.database();
 
-// USER ID FROM LOGIN
-const urlParams = new URLSearchParams(window.location.search);
-const uid = urlParams.get("uid");
+const uid = new URLSearchParams(location.search).get("uid");
 
-// 🏠 CREATE ROOM (ONE USER = ONE OWNER ROOM)
+// create room
 function createRoom(){
 
   let name = document.getElementById("roomName").value;
-  if(!name) return;
 
   let roomId = "room_" + Date.now();
 
   db.ref("rooms/"+roomId).set({
-    name: name,
-    owner: uid,
-    locked: false,
-    created: Date.now(),
-    members: 1
+    name:name,
+    owner:uid,
+    locked:false
   });
 
-  alert("Room Created 🎉");
-
-  window.location.href = "room.html?roomId="+roomId+"&uid="+uid;
+  location.href = "room.html?roomId="+roomId+"&uid="+uid;
 }
 
-// 🔥 LOAD ROOMS
+// load rooms
 db.ref("rooms").on("value", snap=>{
 
-  let data = snap.val();
-  let box = document.getElementById("roomList");
-  box.innerHTML = "";
+  let d = snap.val();
+  let box = document.getElementById("list");
+  box.innerHTML="";
 
-  for(let id in data){
-
-    let r = data[id];
+  for(let id in d){
 
     let div = document.createElement("div");
 
     div.innerHTML = `
-      <p>🏠 ${r.name}</p>
-      <button onclick="joinRoom('${id}')">Join</button>
+      <p>🏠 ${d[id].name}</p>
+      <button onclick="join('${id}')">Join</button>
       <hr>
     `;
 
@@ -124,11 +81,8 @@ db.ref("rooms").on("value", snap=>{
 
 });
 
-// 🚪 JOIN ROOM
-function joinRoom(roomId){
-
-  window.location.href = "room.html?roomId="+roomId+"&uid="+uid;
-
+function join(id){
+  location.href = "room.html?roomId="+id+"&uid="+uid;
 }
 
 </script>
