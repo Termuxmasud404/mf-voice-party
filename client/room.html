@@ -1,104 +1,164 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Voice Chat PRO</title>
-</head>
+<title>MF Voice Party PRO</title>
 
-<body style="background:#0f172a;color:white;text-align:center">
-
-<h1>🎤 MF Voice Room PRO</h1>
-
-<input id="room" placeholder="Room ID">
-<button onclick="joinRoom()">Join</button>
-
-<p id="status">Not connected</p>
-
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+}
+
+.header{
+  padding:15px;
+  background:#1e293b;
+}
+
+.container{
+  padding:10px;
+}
+
+.box{
+  background:#1e293b;
+  padding:10px;
+  margin:10px 0;
+  border-radius:10px;
+}
+
+button{
+  padding:8px;
+  margin:5px;
+  border:none;
+  background:#00e5ff;
+  cursor:pointer;
+}
+
+input{
+  padding:8px;
+  width:60%;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<h2>🎤 MF Voice Party PRO</h2>
+</div>
+
+<div class="container">
+
+<!-- ROOM -->
+<div class="box">
+<input id="room" placeholder="Room ID">
+<button onclick="joinRoom()">Join</button>
+<p>Room: <span id="currentRoom">None</span></p>
+</div>
+
+<!-- COINS -->
+<div class="box">
+<h3>🪙 Coins: <span id="coins">0</span></h3>
+<button onclick="earn()">Earn Coins</button>
+</div>
+
+<!-- CHAT -->
+<div class="box">
+<div id="chatBox" style="height:150px;overflow:auto"></div>
+<input id="msg">
+<button onclick="send()">Send</button>
+</div>
+
+<!-- GIFT -->
+<div class="box">
+<h3>🎁 Gifts</h3>
+<button onclick="gift('rose')">🌹 Rose</button>
+<button onclick="gift('heart')">❤️ Heart</button>
+</div>
+
+<!-- VOICE -->
+<div class="box">
+<h3>🎤 Voice</h3>
+<button onclick="startMic()">Start</button>
+<button onclick="stopMic()">Stop</button>
+<p id="voice">OFF</p>
+</div>
+
+</div>
+
 <script>
-const socket = io();
 
-let localStream;
-let peers = {};
+// Firebase (optional future use)
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
 
-// JOIN ROOM
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let room="";
+let coins=0;
+let stream;
+
+// 🏠 ROOM
 function joinRoom(){
-  let roomId = document.getElementById("room").value;
+  room=document.getElementById("room").value;
+  document.getElementById("currentRoom").innerText=room;
 
-  socket.emit("join-room", roomId);
-
-  startVoice(roomId);
+  db.ref("rooms/"+room+"/chat").on("child_added",snap=>{
+    let d=snap.val();
+    let div=document.createElement("div");
+    div.innerHTML="💬 "+d.text;
+    document.getElementById("chatBox").appendChild(div);
+  });
 }
 
-// START MIC
-async function startVoice(roomId){
+// 💬 CHAT
+function send(){
+  let m=document.getElementById("msg").value;
+  if(!m) return;
 
-  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
-
-  document.getElementById("status").innerText = "Mic ON 🔊";
-
-  // When new user joins
-  socket.on("user-joined", async (userId) => {
-    createPeer(userId);
+  db.ref("rooms/"+room+"/chat").push({
+    text:m
   });
 
-  // Receive signal
-  socket.on("signal", async (data) => {
-
-    if(!peers[data.from]){
-      createPeer(data.from);
-    }
-
-    peers[data.from].setRemoteDescription(new RTCSessionDescription(data.signal));
-
-    if(data.signal.type === "offer"){
-      const answer = await peers[data.from].createAnswer();
-      await peers[data.from].setLocalDescription(answer);
-
-      socket.emit("signal", {
-        to: data.from,
-        signal: peers[data.from].localDescription
-      });
-    }
-
-  });
-
+  document.getElementById("msg").value="";
 }
 
-// CREATE PEER
-function createPeer(userId){
-
-  const pc = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-  });
-
-  peers[userId] = pc;
-
-  localStream.getTracks().forEach(track=>{
-    pc.addTrack(track, localStream);
-  });
-
-  pc.onicecandidate = (event)=>{
-    if(event.candidate) return;
-  };
-
-  pc.ontrack = (event)=>{
-    let audio = document.createElement("audio");
-    audio.srcObject = event.streams[0];
-    audio.autoplay = true;
-    document.body.appendChild(audio);
-  };
-
-  pc.createOffer().then(offer=>{
-    pc.setLocalDescription(offer);
-
-    socket.emit("signal", {
-      to: userId,
-      signal: offer
-    });
-  });
-
+// 🪙 COINS
+function earn(){
+  coins+=10;
+  document.getElementById("coins").innerText=coins;
 }
+
+// 🎁 GIFT
+function gift(type){
+  let cost=type=="rose"?10:20;
+  if(coins<cost){alert("No coins");return;}
+  coins-=cost;
+  document.getElementById("coins").innerText=coins;
+  alert("Gift sent 🎁");
+}
+
+// 🎤 MIC
+async function startMic(){
+  stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  document.getElementById("voice").innerText="ON 🔊";
+}
+
+function stopMic(){
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  document.getElementById("voice").innerText="OFF";
+}
+
 </script>
 
 </body>
