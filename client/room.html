@@ -4,8 +4,8 @@
 <title>MF Voice Party PRO</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-<script src="/socket.io/socket.io.js"></script>
 
 <style>
 body{
@@ -13,87 +13,58 @@ body{
   font-family:Arial;
   background:#0f172a;
   color:white;
+  text-align:center;
 }
-
-.header{
-  padding:15px;
-  background:#1e293b;
-}
-
-.container{
-  padding:10px;
-}
-
 .box{
   background:#1e293b;
+  margin:10px;
   padding:10px;
-  margin:10px 0;
   border-radius:10px;
 }
-
-button{
-  padding:8px;
-  margin:5px;
-  border:none;
-  background:#00e5ff;
-  cursor:pointer;
-}
-
-input{
-  padding:8px;
-  width:60%;
-}
+button{padding:8px;margin:5px;background:#00e5ff;border:none;cursor:pointer;}
+input{padding:8px;width:60%;}
 </style>
 </head>
 
 <body>
 
-<div class="header">
 <h2>🎤 MF Voice Party PRO</h2>
-</div>
 
-<div class="container">
-
-<!-- ROOM -->
 <div class="box">
-<input id="room" placeholder="Room ID">
+<h3>Room</h3>
+<input id="room" placeholder="Room name">
 <button onclick="joinRoom()">Join</button>
 <p>Room: <span id="currentRoom">None</span></p>
 </div>
 
-<!-- COINS -->
 <div class="box">
 <h3>🪙 Coins: <span id="coins">0</span></h3>
 <button onclick="earn()">Earn Coins</button>
 </div>
 
-<!-- CHAT -->
 <div class="box">
-<div id="chatBox" style="height:150px;overflow:auto"></div>
+<h3>💬 Chat</h3>
+<div id="chatBox" style="height:150px;overflow:auto;background:#111"></div>
 <input id="msg">
 <button onclick="send()">Send</button>
 </div>
 
-<!-- GIFT -->
 <div class="box">
-<h3>🎁 Gifts</h3>
+<h3>🎁 Gift</h3>
 <button onclick="gift('rose')">🌹 Rose</button>
 <button onclick="gift('heart')">❤️ Heart</button>
 </div>
 
-<!-- VOICE -->
 <div class="box">
 <h3>🎤 Voice</h3>
-<button onclick="startMic()">Start</button>
-<button onclick="stopMic()">Stop</button>
+<button onclick="startMic()">Start Mic</button>
+<button onclick="stopMic()">Stop Mic</button>
 <p id="voice">OFF</p>
-</div>
-
 </div>
 
 <script>
 
-// Firebase (optional future use)
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
   authDomain: "global-voice-chat-app.firebaseapp.com",
@@ -104,60 +75,99 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let room="";
-let coins=0;
+// 👤 USER ID (FROM LOGIN)
+const urlParams = new URLSearchParams(window.location.search);
+const uid = urlParams.get("uid");
+
+// DATA
+let room = "";
+let coins = 0;
 let stream;
 
-// 🏠 ROOM
+// 🏠 JOIN ROOM
 function joinRoom(){
-  room=document.getElementById("room").value;
-  document.getElementById("currentRoom").innerText=room;
+  room = document.getElementById("room").value;
+  document.getElementById("currentRoom").innerText = room;
 
-  db.ref("rooms/"+room+"/chat").on("child_added",snap=>{
-    let d=snap.val();
-    let div=document.createElement("div");
-    div.innerHTML="💬 "+d.text;
+  db.ref("rooms/"+room+"/chat").on("child_added", snap=>{
+    let d = snap.val();
+    let div = document.createElement("div");
+    div.innerHTML = "💬 " + d.text;
     document.getElementById("chatBox").appendChild(div);
   });
 }
 
-// 💬 CHAT
+// 💬 SEND CHAT
 function send(){
-  let m=document.getElementById("msg").value;
-  if(!m) return;
+  let msg = document.getElementById("msg").value;
+  if(!msg || !room) return;
 
   db.ref("rooms/"+room+"/chat").push({
-    text:m
+    text: msg
   });
 
-  document.getElementById("msg").value="";
+  document.getElementById("msg").value = "";
 }
 
-// 🪙 COINS
+// 🪙 LOAD USER COINS
+function loadUser(){
+  if(!uid) return;
+
+  db.ref("users/"+uid).on("value", snap=>{
+    let data = snap.val();
+
+    if(data){
+      coins = data.coins || 0;
+      document.getElementById("coins").innerText = coins;
+    }
+  });
+}
+
+// 🪙 EARN COINS (SAVE TO FIREBASE)
 function earn(){
-  coins+=10;
-  document.getElementById("coins").innerText=coins;
+  coins += 10;
+
+  db.ref("users/"+uid).update({
+    coins: coins
+  });
+
+  document.getElementById("coins").innerText = coins;
 }
 
-// 🎁 GIFT
+// 🎁 GIFT SYSTEM
 function gift(type){
-  let cost=type=="rose"?10:20;
-  if(coins<cost){alert("No coins");return;}
-  coins-=cost;
-  document.getElementById("coins").innerText=coins;
+
+  let cost = type=="rose"?10:20;
+
+  if(coins < cost){
+    alert("Not enough coins!");
+    return;
+  }
+
+  coins -= cost;
+
+  db.ref("users/"+uid).update({
+    coins: coins
+  });
+
   alert("Gift sent 🎁");
 }
 
 // 🎤 MIC
 async function startMic(){
-  stream=await navigator.mediaDevices.getUserMedia({audio:true});
-  document.getElementById("voice").innerText="ON 🔊";
+  stream = await navigator.mediaDevices.getUserMedia({audio:true});
+  document.getElementById("voice").innerText = "ON 🔊";
 }
 
 function stopMic(){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  document.getElementById("voice").innerText="OFF";
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
+  }
+  document.getElementById("voice").innerText = "OFF";
 }
+
+// INIT
+loadUser();
 
 </script>
 
