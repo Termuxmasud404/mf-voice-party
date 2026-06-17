@@ -4,23 +4,24 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 
 app.use(express.static("client"));
 
 io.on("connection", (socket) => {
 
-  console.log("User connected:", socket.id);
+  console.log("User:", socket.id);
 
-  // Join Room
+  // join room
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
-
-    // notify others
     socket.to(roomId).emit("user-joined", socket.id);
   });
 
-  // WebRTC signal relay
+  // voice signal relay
   socket.on("signal", (data) => {
     io.to(data.to).emit("signal", {
       from: socket.id,
@@ -28,12 +29,8 @@ io.on("connection", (socket) => {
     });
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-
 });
 
 server.listen(3000, () => {
-  console.log("Server running on 3000");
+  console.log("Server running on port 3000");
 });
