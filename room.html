@@ -1,37 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Voice Room</title>
+<title>MF Voice Party</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 
-<body style="background:#0f172a;color:white;text-align:center;padding:20px;">
+<body style="background:#0f172a;color:white;text-align:center;font-family:Arial">
 
-<h1>🏠 Voice Rooms</h1>
+<h1>🎤 MF Voice Party Room</h1>
 
-<!-- Create Room -->
-<input id="roomName" placeholder="Create Room Name" style="padding:10px;width:200px;">
-<button onclick="createRoom()">Create</button>
+<!-- ROOM CONTROLS -->
+<input id="roomName" placeholder="Create / Join Room" style="padding:10px;width:200px;">
+<button onclick="joinRoom()">Join Room</button>
 
-<br><br>
-
-<!-- Join Room -->
-<input id="joinRoom" placeholder="Enter Room Name" style="padding:10px;width:200px;">
-<button onclick="joinRoom()">Join</button>
+<h3>Room: <span id="currentRoom">None</span></h3>
 
 <hr>
 
-<h3>Active Room: <span id="currentRoom">None</span></h3>
+<!-- CHAT BOX -->
+<div id="chatBox" style="height:250px;overflow:auto;background:#1e293b;padding:10px;margin:10px;"></div>
 
-<div id="chatBox" style="height:300px;overflow:auto;background:#1e293b;padding:10px;"></div>
-
-<input id="msg" placeholder="Message..." style="padding:10px;width:70%;">
+<input id="msg" placeholder="Type message..." style="padding:10px;width:60%;">
 <button onclick="sendMsg()">Send</button>
 
+<hr>
+
+<!-- VOICE -->
+<h2>🎤 Voice Chat</h2>
+<button onclick="startVoice()">Start Mic</button>
+<button onclick="stopVoice()">Stop Mic</button>
+<p id="voiceStatus">Mic OFF</p>
+
 <script>
+
 // 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
@@ -40,7 +44,6 @@ const firebaseConfig = {
   storageBucket: "global-voice-chat-app.firebasestorage.app",
   messagingSenderId: "876616774880",
   appId: "1:876616774880:web:b0f7b1a9140df57307cc85",
-  measurementId: "G-YTVC8Q7T28",
   databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/"
 };
 
@@ -48,27 +51,13 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let currentRoom = "";
+let localStream;
 
-// 🏠 Create Room
-function createRoom(){
+// 🏠 Join Room
+function joinRoom(){
   let room = document.getElementById("roomName").value;
   if(!room) return;
 
-  db.ref("rooms/" + room).set({
-    createdAt: Date.now()
-  });
-
-  joinRoomByName(room);
-}
-
-// 🚪 Join Room
-function joinRoom(){
-  let room = document.getElementById("joinRoom").value;
-  joinRoomByName(room);
-}
-
-// 🔗 Join function
-function joinRoomByName(room){
   currentRoom = room;
   document.getElementById("currentRoom").innerText = room;
 
@@ -88,7 +77,7 @@ function sendMsg(){
   document.getElementById("msg").value = "";
 }
 
-// 📩 Listen Messages
+// 📩 Listen Chat
 function listenMessages(){
   db.ref("rooms/" + currentRoom + "/messages").on("child_added", snap=>{
     let data = snap.val();
@@ -99,6 +88,31 @@ function listenMessages(){
     document.getElementById("chatBox").appendChild(div);
   });
 }
+
+// 🎤 START VOICE
+async function startVoice(){
+  try{
+    localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    document.getElementById("voiceStatus").innerText = "Mic ON 🔊";
+
+    let audio = document.createElement("audio");
+    audio.srcObject = localStream;
+    audio.autoplay = true;
+    document.body.appendChild(audio);
+
+  }catch(e){
+    alert("Mic permission denied");
+  }
+}
+
+// 📴 STOP VOICE
+function stopVoice(){
+  if(localStream){
+    localStream.getTracks().forEach(t=>t.stop());
+  }
+  document.getElementById("voiceStatus").innerText = "Mic OFF 🔇";
+}
+
 </script>
 
 </body>
