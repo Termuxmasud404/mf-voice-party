@@ -1,31 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>MF Voice Party - Room</title>
+<title>Room</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0f172a;
-  color:white;
-  text-align:center;
-}
-
-.header{
-  background:#1e293b;
-  padding:10px;
-}
-
-.box{
-  background:#1e293b;
-  margin:10px;
-  padding:10px;
-  border-radius:10px;
-}
+body{background:#0f172a;color:white;font-family:Arial;text-align:center}
 
 .seats{
   display:grid;
@@ -35,65 +18,32 @@ body{
 }
 
 .seat{
-  background:#111827;
+  background:#1e293b;
   padding:10px;
-  border-radius:8px;
-  min-height:50px;
+  border-radius:10px;
 }
-
-button{
-  padding:6px;
-  margin:3px;
-  background:#00e5ff;
-  border:none;
-  cursor:pointer;
-}
-input{
-  padding:8px;
-  width:60%;
-}
+button{padding:5px;margin:5px}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<h3>🎤 ROOM</h3>
-<p>Room ID: <span id="roomIdText"></span></p>
-</div>
+<h2>🎤 Voice Room</h2>
 
-<!-- SEATS -->
-<div class="box">
-<h3>🪑 Seats (8 Users)</h3>
+<div id="roomIdText"></div>
+
+<h3>🪑 Seats</h3>
 <div class="seats" id="seats"></div>
-</div>
 
-<!-- CHAT -->
-<div class="box">
 <h3>💬 Chat</h3>
-<div id="chatBox" style="height:120px;overflow:auto;background:#0f172a;"></div>
+<div id="chat"></div>
 <input id="msg">
-<button onclick="sendMsg()">Send</button>
-</div>
-
-<!-- VOICE -->
-<div class="box">
-<h3>🎤 Voice</h3>
-<button onclick="startMic()">Mic ON</button>
-<button onclick="stopMic()">Mic OFF</button>
-<p id="voiceStatus">OFF</p>
-</div>
-
-<!-- GIFT -->
-<div class="box">
-<h3>🎁 Gift</h3>
-<button onclick="sendGift('rose')">🌹 Rose</button>
-<button onclick="sendGift('heart')">❤️ Heart</button>
-</div>
+<button onclick="send()">Send</button>
 
 <script>
 
-// 🔥 Firebase
+const socket = io();
+
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
   authDomain: "global-voice-chat-app.firebaseapp.com",
@@ -102,40 +52,31 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const db = firebase.database();
 
-// URL DATA
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get("roomId");
-const uid = urlParams.get("uid");
+const params = new URLSearchParams(location.search);
+const roomId = params.get("roomId");
+const uid = params.get("uid");
 
 document.getElementById("roomIdText").innerText = roomId;
 
-// 🪑 CREATE SEATS (8 SEATS)
-let seats = [];
-
-for(let i=0;i<8;i++){
-  seats.push(null);
-}
+// seats
+let seats = Array(8).fill(null);
 
 function renderSeats(){
 
   let box = document.getElementById("seats");
-  box.innerHTML = "";
+  box.innerHTML="";
 
-  seats.forEach((user, index)=>{
+  seats.forEach((u,i)=>{
 
     let div = document.createElement("div");
-    div.className = "seat";
+    div.className="seat";
 
-    if(user){
-      div.innerHTML = `
-        👤 ${user}<br>
-        <button onclick="mute(${index})">Mute</button>
-      `;
-    } else {
-      div.innerHTML = `<button onclick="joinSeat(${index})">Join Seat</button>`;
+    if(u){
+      div.innerHTML = "👤 "+u;
+    }else{
+      div.innerHTML = `<button onclick="joinSeat(${i})">Join</button>`;
     }
 
     box.appendChild(div);
@@ -143,86 +84,103 @@ function renderSeats(){
 
 }
 
-// 🪑 JOIN SEAT
-function joinSeat(index){
-  seats[index] = uid;
-
+function joinSeat(i){
+  seats[i]=uid;
   db.ref("rooms/"+roomId+"/seats").set(seats);
-
-  renderSeats();
 }
 
-// 🔇 MUTE (basic)
-function mute(index){
-  alert("Muted user (demo)");
-}
-
-// 💬 CHAT
-function sendMsg(){
-
-  let msg = document.getElementById("msg").value;
-  if(!msg) return;
-
-  db.ref("rooms/"+roomId+"/chat").push({
-    user: uid,
-    text: msg
-  });
-
-  document.getElementById("msg").value="";
-}
-
-// LIVE CHAT
-db.ref("rooms/"+roomId+"/chat").on("child_added", snap=>{
-
-  let d = snap.val();
-
-  let div = document.createElement("div");
-  div.innerHTML = "💬 " + d.user + ": " + d.text;
-
-  document.getElementById("chatBox").appendChild(div);
-
-});
-
-// 🎁 GIFT
-function sendGift(type){
-
-  db.ref("rooms/"+roomId+"/gifts").push({
-    user: uid,
-    type: type
-  });
-
-  alert("Gift sent 🎁");
-}
-
-// 🎤 MIC (basic)
-let stream;
-
-async function startMic(){
-  stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  document.getElementById("voiceStatus").innerText = "ON 🔊";
-}
-
-function stopMic(){
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
-  }
-  document.getElementById("voiceStatus").innerText = "OFF";
-}
-
-// LOAD SEATS
+// listen seats
 db.ref("rooms/"+roomId+"/seats").on("value", snap=>{
-
-  let data = snap.val();
-
-  if(data){
-    seats = data;
-  }
-
+  seats = snap.val() || Array(8).fill(null);
   renderSeats();
-
 });
 
 renderSeats();
+
+// chat
+function send(){
+  let msg = document.getElementById("msg").value;
+
+  db.ref("rooms/"+roomId+"/chat").push({
+    uid,
+    msg
+  });
+}
+
+db.ref("rooms/"+roomId+"/chat").on("child_added", snap=>{
+  let d = snap.val();
+  let div = document.createElement("div");
+  div.innerText = d.uid + ": " + d.msg;
+  document.getElementById("chat").appendChild(div);
+});
+
+
+// ===== VOICE SYSTEM =====
+let stream;
+let peers = {};
+
+socket.emit("join-room", roomId);
+
+async function startVoice(){
+
+  stream = await navigator.mediaDevices.getUserMedia({audio:true});
+
+  socket.on("user-joined", (id)=>{
+    createPeer(id);
+  });
+
+  socket.on("signal", async (data)=>{
+
+    if(!peers[data.from]){
+      createPeer(data.from);
+    }
+
+    await peers[data.from].setRemoteDescription(data.signal);
+
+    if(data.signal.type==="offer"){
+
+      let answer = await peers[data.from].createAnswer();
+      await peers[data.from].setLocalDescription(answer);
+
+      socket.emit("signal", {
+        to:data.from,
+        signal:peers[data.from].localDescription
+      });
+    }
+
+  });
+
+}
+
+function createPeer(id){
+
+  const pc = new RTCPeerConnection({
+    iceServers:[{urls:"stun:stun.l.google.com:19302"}]
+  });
+
+  peers[id]=pc;
+
+  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+
+  pc.ontrack=(e)=>{
+    let audio=document.createElement("audio");
+    audio.srcObject=e.streams[0];
+    audio.autoplay=true;
+    document.body.appendChild(audio);
+  };
+
+  pc.createOffer().then(o=>{
+    pc.setLocalDescription(o);
+
+    socket.emit("signal",{
+      to:id,
+      signal:o
+    });
+  });
+
+}
+
+startVoice();
 
 </script>
 
