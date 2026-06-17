@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Room</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+</head>
+
+<body style="background:#111;color:white;text-align:center;padding-top:80px;">
+
+<h1>🎤 Welcome to Voice Room</h1>
+
+<button onclick="logout()">Logout</button>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  projectId: "global-voice-chat-app",
+  storageBucket: "global-voice-chat-app.firebasestorage.app",
+  messagingSenderId: "876616774880",
+  appId: "1:876616774880:web:b0f7b1a9140df57307cc85",
+  measurementId: "G-YTVC8Q7T28"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+function logout(){
+  auth.signOut().then(()=>{
+    window.location.href = "index.html";
+  });
+}
+</script>
+
+</body>
+</html>
