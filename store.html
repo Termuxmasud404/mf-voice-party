@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Store - MF Voice Party</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:#1e293b;
+  margin:10px;
+  padding:15px;
+  border-radius:10px;
+}
+
+button{
+  padding:8px;
+  margin:5px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🏪 STORE</h2>
+
+<div class="box">
+<h3>💎 Buy Coins</h3>
+<button onclick="buyCoins(100)">100 Coins</button>
+<button onclick="buyCoins(500)">500 Coins</button>
+<button onclick="buyCoins(1000)">1000 Coins</button>
+</div>
+
+<div class="box">
+<h3>👑 VIP</h3>
+<button onclick="buyVIP()">Buy VIP (Unlock Badge)</button>
+</div>
+
+<div class="box">
+<h3>💠 Diamonds</h3>
+<p>Diamonds come from gifts 🎁</p>
+</div>
+
+<div class="box">
+<h3>📊 Info</h3>
+<p>User ID: <span id="uid"></span></p>
+<p>Coins: <span id="coins">0</span></p>
+<p>VIP: <span id="vip">No</span></p>
+</div>
+
+<script>
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+// UID
+const uid = new URLSearchParams(location.search).get("uid");
+
+document.getElementById("uid").innerText = uid;
+
+// LOAD USER
+function loadUser(){
+
+  db.ref("users/"+uid).on("value", snap=>{
+
+    let data = snap.val();
+
+    if(!data) return;
+
+    document.getElementById("coins").innerText = data.coins || 0;
+    document.getElementById("vip").innerText = data.vip ? "YES 👑" : "NO";
+
+  });
+
+}
+
+// BUY COINS (demo system)
+function buyCoins(amount){
+
+  db.ref("users/"+uid).once("value", snap=>{
+
+    let data = snap.val();
+
+    let coins = data.coins || 0;
+
+    coins += amount;
+
+    db.ref("users/"+uid).update({
+      coins: coins
+    });
+
+    alert(amount + " Coins Added 🎉");
+
+  });
+
+}
+
+// BUY VIP
+function buyVIP(){
+
+  db.ref("users/"+uid).update({
+    vip:true
+  });
+
+  alert("VIP Activated 👑");
+}
+
+loadUser();
+
+</script>
+
+</body>
+</html>
