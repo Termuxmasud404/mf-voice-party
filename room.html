@@ -1,19 +1,38 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Room</title>
+<title>Voice Room</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 
-<body style="background:#111;color:white;text-align:center;padding-top:80px;">
+<body style="background:#0f172a;color:white;text-align:center;padding:20px;">
 
-<h1>🎤 Welcome to Voice Room</h1>
+<h1>🏠 Voice Rooms</h1>
 
-<button onclick="logout()">Logout</button>
+<!-- Create Room -->
+<input id="roomName" placeholder="Create Room Name" style="padding:10px;width:200px;">
+<button onclick="createRoom()">Create</button>
+
+<br><br>
+
+<!-- Join Room -->
+<input id="joinRoom" placeholder="Enter Room Name" style="padding:10px;width:200px;">
+<button onclick="joinRoom()">Join</button>
+
+<hr>
+
+<h3>Active Room: <span id="currentRoom">None</span></h3>
+
+<div id="chatBox" style="height:300px;overflow:auto;background:#1e293b;padding:10px;"></div>
+
+<input id="msg" placeholder="Message..." style="padding:10px;width:70%;">
+<button onclick="sendMsg()">Send</button>
 
 <script>
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
   authDomain: "global-voice-chat-app.firebaseapp.com",
@@ -21,15 +40,63 @@ const firebaseConfig = {
   storageBucket: "global-voice-chat-app.firebasestorage.app",
   messagingSenderId: "876616774880",
   appId: "1:876616774880:web:b0f7b1a9140df57307cc85",
-  measurementId: "G-YTVC8Q7T28"
+  measurementId: "G-YTVC8Q7T28",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/"
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
+const db = firebase.database();
 
-function logout(){
-  auth.signOut().then(()=>{
-    window.location.href = "index.html";
+let currentRoom = "";
+
+// 🏠 Create Room
+function createRoom(){
+  let room = document.getElementById("roomName").value;
+  if(!room) return;
+
+  db.ref("rooms/" + room).set({
+    createdAt: Date.now()
+  });
+
+  joinRoomByName(room);
+}
+
+// 🚪 Join Room
+function joinRoom(){
+  let room = document.getElementById("joinRoom").value;
+  joinRoomByName(room);
+}
+
+// 🔗 Join function
+function joinRoomByName(room){
+  currentRoom = room;
+  document.getElementById("currentRoom").innerText = room;
+
+  listenMessages();
+}
+
+// 💬 Send Message
+function sendMsg(){
+  let msg = document.getElementById("msg").value;
+  if(!msg || !currentRoom) return;
+
+  db.ref("rooms/" + currentRoom + "/messages").push({
+    text: msg,
+    time: Date.now()
+  });
+
+  document.getElementById("msg").value = "";
+}
+
+// 📩 Listen Messages
+function listenMessages(){
+  db.ref("rooms/" + currentRoom + "/messages").on("child_added", snap=>{
+    let data = snap.val();
+
+    let div = document.createElement("div");
+    div.innerHTML = "💬 " + data.text;
+
+    document.getElementById("chatBox").appendChild(div);
   });
 }
 </script>
