@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>MF Voice Party</title>
+<title>MF Voice Party PRO</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -10,29 +10,42 @@
 
 <body style="background:#0f172a;color:white;text-align:center;font-family:Arial">
 
-<h1>🎤 MF Voice Party Room</h1>
+<h1>🎤 MF Voice Party PRO</h1>
 
-<!-- ROOM CONTROLS -->
-<input id="roomName" placeholder="Create / Join Room" style="padding:10px;width:200px;">
-<button onclick="joinRoom()">Join Room</button>
+<!-- ROOM -->
+<input id="room" placeholder="Room name" style="padding:10px;width:200px;">
+<button onclick="joinRoom()">Join</button>
 
 <h3>Room: <span id="currentRoom">None</span></h3>
 
 <hr>
 
-<!-- CHAT BOX -->
-<div id="chatBox" style="height:250px;overflow:auto;background:#1e293b;padding:10px;margin:10px;"></div>
+<!-- COIN SYSTEM -->
+<h2>🪙 Coins: <span id="coins">0</span></h2>
+<button onclick="earnCoins()">🎮 Play Game (Earn Coins)</button>
 
-<input id="msg" placeholder="Type message..." style="padding:10px;width:60%;">
+<hr>
+
+<!-- CHAT -->
+<div id="chatBox" style="height:200px;overflow:auto;background:#1e293b;margin:10px;padding:10px;"></div>
+
+<input id="msg" placeholder="message..." style="padding:10px;width:60%;">
 <button onclick="sendMsg()">Send</button>
 
 <hr>
 
+<!-- GIFT -->
+<h2>🎁 Gift</h2>
+<button onclick="sendGift('rose')">🌹 Rose (10 coins)</button>
+<button onclick="sendGift('heart')">❤️ Heart (20 coins)</button>
+
+<hr>
+
 <!-- VOICE -->
-<h2>🎤 Voice Chat</h2>
+<h2>🎤 Voice</h2>
 <button onclick="startVoice()">Start Mic</button>
 <button onclick="stopVoice()">Stop Mic</button>
-<p id="voiceStatus">Mic OFF</p>
+<p id="voiceStatus">OFF</p>
 
 <script>
 
@@ -50,67 +63,79 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let currentRoom = "";
+let room = "";
+let coins = 0;
 let localStream;
 
-// 🏠 Join Room
+// 🏠 JOIN ROOM
 function joinRoom(){
-  let room = document.getElementById("roomName").value;
-  if(!room) return;
-
-  currentRoom = room;
+  room = document.getElementById("room").value;
   document.getElementById("currentRoom").innerText = room;
 
   listenMessages();
 }
 
-// 💬 Send Message
+// 💬 CHAT
 function sendMsg(){
   let msg = document.getElementById("msg").value;
-  if(!msg || !currentRoom) return;
+  if(!msg || !room) return;
 
-  db.ref("rooms/" + currentRoom + "/messages").push({
+  db.ref("rooms/"+room+"/chat").push({
     text: msg,
     time: Date.now()
   });
 
-  document.getElementById("msg").value = "";
+  document.getElementById("msg").value="";
 }
 
-// 📩 Listen Chat
 function listenMessages(){
-  db.ref("rooms/" + currentRoom + "/messages").on("child_added", snap=>{
+  db.ref("rooms/"+room+"/chat").on("child_added",snap=>{
     let data = snap.val();
-
     let div = document.createElement("div");
     div.innerHTML = "💬 " + data.text;
-
     document.getElementById("chatBox").appendChild(div);
   });
 }
 
-// 🎤 START VOICE
-async function startVoice(){
-  try{
-    localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
-    document.getElementById("voiceStatus").innerText = "Mic ON 🔊";
-
-    let audio = document.createElement("audio");
-    audio.srcObject = localStream;
-    audio.autoplay = true;
-    document.body.appendChild(audio);
-
-  }catch(e){
-    alert("Mic permission denied");
-  }
+// 🪙 COIN SYSTEM
+function earnCoins(){
+  let gain = Math.floor(Math.random()*20)+10;
+  coins += gain;
+  document.getElementById("coins").innerText = coins;
 }
 
-// 📴 STOP VOICE
+// 🎁 GIFT SYSTEM
+function sendGift(type){
+
+  let cost = type=="rose"?10:20;
+
+  if(coins < cost){
+    alert("Not enough coins!");
+    return;
+  }
+
+  coins -= cost;
+  document.getElementById("coins").innerText = coins;
+
+  db.ref("rooms/"+room+"/gifts").push({
+    type:type,
+    time:Date.now()
+  });
+
+  alert("Gift sent 🎁");
+}
+
+// 🎤 VOICE (basic)
+async function startVoice(){
+  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+  document.getElementById("voiceStatus").innerText="ON 🔊";
+}
+
 function stopVoice(){
   if(localStream){
     localStream.getTracks().forEach(t=>t.stop());
   }
-  document.getElementById("voiceStatus").innerText = "Mic OFF 🔇";
+  document.getElementById("voiceStatus").innerText="OFF";
 }
 
 </script>
