@@ -5,29 +5,53 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  background:#0f172a;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+  padding-top:80px;
+}
+
+.box{
+  background:#1e293b;
+  width:300px;
+  margin:auto;
+  padding:20px;
+  border-radius:10px;
+}
+
+input{
+  width:90%;
+  padding:10px;
+  margin:8px 0;
+}
+
+button{
+  width:95%;
+  padding:10px;
+  margin-top:10px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+}
+</style>
 </head>
 
-<body style="background:#0f172a;color:white;text-align:center;font-family:Arial;padding-top:80px;">
+<body>
 
-<h1>🎤 MF Voice Party</h1>
+<h2>🎤 MF Voice Party</h2>
 
-<div style="background:#1e293b;padding:20px;width:300px;margin:auto;border-radius:15px;">
+<div class="box">
 
-<input id="email" type="email" placeholder="Email"
-style="padding:10px;width:90%;margin:10px;"><br>
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
 
-<input id="password" type="password" placeholder="Password"
-style="padding:10px;width:90%;margin:10px;"><br>
-
-<button onclick="login()"
-style="padding:10px;width:95%;background:#00e5ff;border:none;">
-Login
-</button>
-
-<button onclick="register()"
-style="padding:10px;width:95%;margin-top:10px;background:#22c55e;border:none;">
-Register
-</button>
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
 
 <p id="msg"></p>
 
@@ -35,44 +59,67 @@ Register
 
 <script>
 
-// 🔥 Firebase Config (same project)
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
   authDomain: "global-voice-chat-app.firebaseapp.com",
-  projectId: "global-voice-chat-app",
-  storageBucket: "global-voice-chat-app.firebasestorage.app",
-  messagingSenderId: "876616774880",
-  appId: "1:876616774880:web:b0f7b1a9140df57307cc85"
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
 };
 
 firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
 
-// ✅ Register
+const auth = firebase.auth();
+const db = firebase.database();
+
+// 🧾 REGISTER
 function register(){
+
   let email = document.getElementById("email").value;
   let password = document.getElementById("password").value;
 
-  auth.createUserWithEmailAndPassword(email,password)
-  .then(()=>{
+  auth.createUserWithEmailAndPassword(email, password)
+  .then((userCredential)=>{
+
+    let user = userCredential.user;
+
+    // CREATE USER PROFILE
+    db.ref("users/"+user.uid).set({
+      email: user.email,
+      name: email.split("@")[0],
+      coins: 100,
+      level: 1,
+      vip: false,
+      idNumber: Math.floor(Math.random()*999999)
+    });
+
     document.getElementById("msg").innerText = "Account Created ✅";
+
+    setTimeout(()=>{
+      window.location.href = "home.html?uid="+user.uid;
+    },1000);
+
   })
   .catch(err=>{
     document.getElementById("msg").innerText = err.message;
   });
 }
 
-// ✅ Login
+// 🔑 LOGIN
 function login(){
+
   let email = document.getElementById("email").value;
   let password = document.getElementById("password").value;
 
-  auth.signInWithEmailAndPassword(email,password)
-  .then(()=>{
+  auth.signInWithEmailAndPassword(email, password)
+  .then((userCredential)=>{
+
+    let user = userCredential.user;
+
     document.getElementById("msg").innerText = "Login Success 🚀";
 
     setTimeout(()=>{
-      window.location.href = "room.html";
+      window.location.href = "home.html?uid="+user.uid;
     },1000);
 
   })
