@@ -1,105 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MF Voice Party</title>
 
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:Arial,sans-serif;
-}
-
-body{
-background:#0f172a;
-color:white;
-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-}
-
-.container{
-width:90%;
-max-width:400px;
-background:#1e293b;
-padding:30px;
-border-radius:20px;
-box-shadow:0 0 20px rgba(0,0,0,.5);
-}
-
-.logo{
-text-align:center;
-font-size:32px;
-font-weight:bold;
-margin-bottom:20px;
-}
-
-.logo span{
-color:#00e5ff;
-}
-
-input{
-width:100%;
-padding:12px;
-margin:10px 0;
-border:none;
-border-radius:10px;
-outline:none;
-}
-
-button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:10px;
-background:#00e5ff;
-color:black;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:hover{
-opacity:.8;
-}
-
-.links{
-text-align:center;
-margin-top:15px;
-}
-
-a{
-color:#00e5ff;
-text-decoration:none;
-}
-</style>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 
-<body>
+<body style="background:#0f172a;color:white;text-align:center;padding-top:80px;">
 
-<div class="container">
+<h1>🎤 MF Voice Party</h1>
 
-<div class="logo">
-MF <span>VOICE</span> PARTY
-</div>
+<input id="email" placeholder="Email" style="padding:10px;width:220px"><br><br>
+<input id="password" type="password" placeholder="Password" style="padding:10px;width:220px"><br><br>
 
-<input type="email" placeholder="Email">
-<input type="password" placeholder="Password">
+<button onclick="register()">Register</button>
+<button onclick="login()">Login</button>
 
-<button>Login</button>
+<p id="msg"></p>
 
-<div class="links">
-<p>
-No account?
-<a href="register.html">Register</a>
-</p>
-</div>
+<script>
+// 🔥 তোমার Firebase Config বসানো হলো
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  projectId: "global-voice-chat-app",
+  storageBucket: "global-voice-chat-app.firebasestorage.app",
+  messagingSenderId: "876616774880",
+  appId: "1:876616774880:web:b0f7b1a9140df57307cc85",
+  measurementId: "G-YTVC8Q7T28"
+};
 
-</div>
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// ✅ Register
+function register(){
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  auth.createUserWithEmailAndPassword(email, password)
+  .then(user=>{
+    document.getElementById("msg").innerText = "Account Created ✅";
+  })
+  .catch(err=>{
+    document.getElementById("msg").innerText = err.message;
+  });
+}
+
+// ✅ Login
+function login(){
+  let email = document.getElementById("email").value;
+  let password = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(email, password)
+  .then(user=>{
+    document.getElementById("msg").innerText = "Login Success 🚀";
+    setTimeout(()=>{
+      window.location.href = "room.html";
+    }, 1000);
+  })
+  .catch(err=>{
+    document.getElementById("msg").innerText = err.message;
+  });
+}
+</script>
 
 </body>
 </html>
