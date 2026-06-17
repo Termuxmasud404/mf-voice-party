@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel - MF Voice Party</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:#1e293b;
+  margin:10px;
+  padding:15px;
+  border-radius:10px;
+}
+
+.user{
+  background:#111827;
+  margin:8px;
+  padding:10px;
+  border-radius:8px;
+}
+button{
+  padding:6px;
+  margin:3px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>👑 ADMIN PANEL</h2>
+
+<div class="box">
+<h3>Room ID: <span id="roomIdText"></span></h3>
+</div>
+
+<div class="box">
+<h3>👥 Users</h3>
+<div id="userList"></div>
+</div>
+
+<div class="box">
+<h3>🔒 Room Control</h3>
+<button onclick="lockRoom()">Lock Room</button>
+<button onclick="unlockRoom()">Unlock Room</button>
+</div>
+
+<script>
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+// URL
+const params = new URLSearchParams(location.search);
+const roomId = params.get("roomId");
+
+document.getElementById("roomIdText").innerText = roomId;
+
+// LOAD USERS FROM SEATS
+function loadUsers(){
+
+  db.ref("rooms/"+roomId+"/seats").on("value", snap=>{
+
+    let data = snap.val() || [];
+
+    let box = document.getElementById("userList");
+    box.innerHTML="";
+
+    data.forEach((uid,index)=>{
+
+      if(!uid) return;
+
+      let div = document.createElement("div");
+      div.className="user";
+
+      div.innerHTML = `
+        👤 ${uid}<br>
+        <button onclick="kick(${index})">Kick</button>
+        <button onclick="mute(${index})">Mute</button>
+      `;
+
+      box.appendChild(div);
+
+    });
+
+  });
+
+}
+
+// KICK USER
+function kick(index){
+
+  db.ref("rooms/"+roomId+"/seats/"+index).set(null);
+
+  alert("User Kicked 🚫");
+}
+
+// MUTE (demo logic)
+function mute(index){
+
+  alert("User Muted 🔇 (demo)");
+}
+
+// LOCK ROOM
+function lockRoom(){
+
+  db.ref("rooms/"+roomId).update({
+    locked:true
+  });
+
+  alert("Room Locked 🔒");
+}
+
+// UNLOCK ROOM
+function unlockRoom(){
+
+  db.ref("rooms/"+roomId).update({
+    locked:false
+  });
+
+  alert("Room Unlocked 🔓");
+}
+
+loadUsers();
+
+</script>
+
+</body>
+</html>
