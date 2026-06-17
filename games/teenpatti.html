@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Teen Patti - MF Voice Party</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:#1e293b;
+  margin:10px;
+  padding:15px;
+  border-radius:10px;
+}
+
+.card{
+  display:inline-block;
+  background:white;
+  color:black;
+  padding:20px;
+  margin:5px;
+  border-radius:8px;
+  font-size:20px;
+  width:60px;
+}
+button{
+  padding:10px;
+  margin:5px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+}
+input{
+  padding:8px;
+  width:60%;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🃏 TEEN PATTI</h2>
+
+<div class="box">
+<p>Play & Win Coins 🎰</p>
+
+<p>Coins: <span id="coins">0</span></p>
+
+<input id="bet" type="number" placeholder="Enter Bet Coins">
+
+<br>
+
+<button onclick="deal()">DEAL CARDS</button>
+<button onclick="showResult()">SHOW RESULT</button>
+
+<div>
+  <div class="card" id="c1">?</div>
+  <div class="card" id="c2">?</div>
+  <div class="card" id="c3">?</div>
+</div>
+
+<p id="msg"></p>
+</div>
+
+<script>
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+const uid = new URLSearchParams(location.search).get("uid");
+
+let coins = 0;
+let playerScore = 0;
+let botScore = 0;
+
+// load user
+function loadUser(){
+
+  db.ref("users/"+uid).on("value", snap=>{
+    let data = snap.val();
+    if(!data) return;
+
+    coins = data.coins || 0;
+    document.getElementById("coins").innerText = coins;
+  });
+
+}
+
+// random card
+function card(){
+  return Math.floor(Math.random()*10)+1;
+}
+
+// DEAL CARDS
+function deal(){
+
+  let bet = parseInt(document.getElementById("bet").value);
+
+  if(!bet || bet <= 0){
+    alert("Enter bet");
+    return;
+  }
+
+  if(bet > coins){
+    alert("Not enough coins");
+    return;
+  }
+
+  // player cards
+  let c1 = card();
+  let c2 = card();
+  let c3 = card();
+
+  document.getElementById("c1").innerText = c1;
+  document.getElementById("c2").innerText = c2;
+  document.getElementById("c3").innerText = c3;
+
+  playerScore = c1 + c2 + c3;
+
+  // bot score
+  botScore = Math.floor(Math.random()*25)+5;
+
+  document.getElementById("msg").innerText = "Cards dealt... Now show result 🎲";
+}
+
+// SHOW RESULT
+function showResult(){
+
+  let bet = parseInt(document.getElementById("bet").value);
+
+  if(playerScore === 0){
+    alert("Deal cards first");
+    return;
+  }
+
+  if(playerScore > botScore){
+
+    let win = bet * 2;
+    coins += bet;
+
+    document.getElementById("msg").innerText = "🎉 You WIN "+win+" coins!";
+
+  } else {
+
+    coins -= bet;
+
+    document.getElementById("msg").innerText = "😢 You LOSE "+bet+" coins!";
+
+  }
+
+  db.ref("users/"+uid).update({
+    coins: coins
+  });
+
+  document.getElementById("coins").innerText = coins;
+
+  playerScore = 0;
+}
+
+loadUser();
+
+</script>
+
+</body>
+</html>
