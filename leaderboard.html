@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Leaderboard - MF Voice Party</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:#1e293b;
+  margin:10px;
+  padding:15px;
+  border-radius:10px;
+}
+
+.rank{
+  background:#111827;
+  margin:8px;
+  padding:10px;
+  border-radius:8px;
+  text-align:left;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🏆 LEADERBOARD</h2>
+
+<div class="box">
+<div id="list"></div>
+</div>
+
+<script>
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+// LOAD USERS
+function loadLeaderboard(){
+
+  db.ref("users").once("value", snap=>{
+
+    let data = snap.val();
+    let arr = [];
+
+    for(let id in data){
+      arr.push({
+        id:id,
+        name:data[id].name || "User",
+        coins:data[id].coins || 0,
+        level:data[id].level || 1
+      });
+    }
+
+    // sort by coins
+    arr.sort((a,b)=>b.coins - a.coins);
+
+    let box = document.getElementById("list");
+    box.innerHTML="";
+
+    arr.forEach((u,i)=>{
+
+      let div = document.createElement("div");
+      div.className="rank";
+
+      div.innerHTML = `
+        🏅 #${i+1}<br>
+        👤 ${u.name}<br>
+        🪙 Coins: ${u.coins}<br>
+        ⭐ Level: ${u.level}
+      `;
+
+      box.appendChild(div);
+    });
+
+  });
+
+}
+
+loadLeaderboard();
+
+</script>
+
+</body>
+</html>
