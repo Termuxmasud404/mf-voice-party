@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Mine - MF Voice Party</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0f172a;
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:#1e293b;
+  margin:10px;
+  padding:15px;
+  border-radius:10px;
+}
+
+button{
+  padding:8px;
+  margin:5px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🪙 MY MINE</h2>
+
+<div class="box">
+<h3>👤 User ID</h3>
+<p id="uid"></p>
+</div>
+
+<div class="box">
+<h3>🪙 Coins</h3>
+<p id="coins">0</p>
+</div>
+
+<div class="box">
+<h3>⭐ Level</h3>
+<p id="level">1</p>
+</div>
+
+<div class="box">
+<h3>💎 VIP</h3>
+<p id="vip">No</p>
+</div>
+
+<div class="box">
+<h3>🎁 Daily Bonus</h3>
+<button onclick="dailyBonus()">Claim +50 Coins</button>
+</div>
+
+<script>
+
+// 🔥 Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
+  authDomain: "global-voice-chat-app.firebaseapp.com",
+  databaseURL: "https://global-voice-chat-app-default-rtdb.firebaseio.com/",
+  projectId: "global-voice-chat-app"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.database();
+
+// UID
+const uid = new URLSearchParams(location.search).get("uid");
+
+document.getElementById("uid").innerText = uid;
+
+// LOAD USER DATA
+function loadUser(){
+
+  db.ref("users/"+uid).on("value", snap=>{
+
+    let data = snap.val();
+
+    if(!data) return;
+
+    document.getElementById("coins").innerText = data.coins || 0;
+    document.getElementById("level").innerText = data.level || 1;
+    document.getElementById("vip").innerText = data.vip ? "YES 👑" : "NO";
+
+  });
+
+}
+
+// DAILY BONUS
+function dailyBonus(){
+
+  db.ref("users/"+uid).once("value", snap=>{
+
+    let data = snap.val();
+
+    let coins = data.coins || 0;
+
+    coins += 50;
+
+    db.ref("users/"+uid).update({
+      coins: coins
+    });
+
+    alert("Daily Bonus Claimed 🎁 +50 Coins");
+
+  });
+
+}
+
+loadUser();
+
+</script>
+
+</body>
+</html>
