@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>MF Voice Party PRO</title>
+<title>MF Voice Party - Room</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <style>
@@ -15,56 +14,86 @@ body{
   color:white;
   text-align:center;
 }
+
+.header{
+  background:#1e293b;
+  padding:10px;
+}
+
 .box{
   background:#1e293b;
   margin:10px;
   padding:10px;
   border-radius:10px;
 }
-button{padding:8px;margin:5px;background:#00e5ff;border:none;cursor:pointer;}
-input{padding:8px;width:60%;}
+
+.seats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  padding:10px;
+}
+
+.seat{
+  background:#111827;
+  padding:10px;
+  border-radius:8px;
+  min-height:50px;
+}
+
+button{
+  padding:6px;
+  margin:3px;
+  background:#00e5ff;
+  border:none;
+  cursor:pointer;
+}
+input{
+  padding:8px;
+  width:60%;
+}
 </style>
 </head>
 
 <body>
 
-<h2>🎤 MF Voice Party PRO</h2>
-
-<div class="box">
-<h3>Room</h3>
-<input id="room" placeholder="Room name">
-<button onclick="joinRoom()">Join</button>
-<p>Room: <span id="currentRoom">None</span></p>
+<div class="header">
+<h3>🎤 ROOM</h3>
+<p>Room ID: <span id="roomIdText"></span></p>
 </div>
 
+<!-- SEATS -->
 <div class="box">
-<h3>🪙 Coins: <span id="coins">0</span></h3>
-<button onclick="earn()">Earn Coins</button>
+<h3>🪑 Seats (8 Users)</h3>
+<div class="seats" id="seats"></div>
 </div>
 
+<!-- CHAT -->
 <div class="box">
 <h3>💬 Chat</h3>
-<div id="chatBox" style="height:150px;overflow:auto;background:#111"></div>
+<div id="chatBox" style="height:120px;overflow:auto;background:#0f172a;"></div>
 <input id="msg">
-<button onclick="send()">Send</button>
+<button onclick="sendMsg()">Send</button>
 </div>
 
-<div class="box">
-<h3>🎁 Gift</h3>
-<button onclick="gift('rose')">🌹 Rose</button>
-<button onclick="gift('heart')">❤️ Heart</button>
-</div>
-
+<!-- VOICE -->
 <div class="box">
 <h3>🎤 Voice</h3>
-<button onclick="startMic()">Start Mic</button>
-<button onclick="stopMic()">Stop Mic</button>
-<p id="voice">OFF</p>
+<button onclick="startMic()">Mic ON</button>
+<button onclick="stopMic()">Mic OFF</button>
+<p id="voiceStatus">OFF</p>
+</div>
+
+<!-- GIFT -->
+<div class="box">
+<h3>🎁 Gift</h3>
+<button onclick="sendGift('rose')">🌹 Rose</button>
+<button onclick="sendGift('heart')">❤️ Heart</button>
 </div>
 
 <script>
 
-// 🔥 Firebase Config
+// 🔥 Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyBUAR6JQU1bZzj2eCkzwvtIbPuRhpwf4Ds",
   authDomain: "global-voice-chat-app.firebaseapp.com",
@@ -73,101 +102,127 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
+
 const db = firebase.database();
 
-// 👤 USER ID (FROM LOGIN)
+// URL DATA
 const urlParams = new URLSearchParams(window.location.search);
+const roomId = urlParams.get("roomId");
 const uid = urlParams.get("uid");
 
-// DATA
-let room = "";
-let coins = 0;
-let stream;
+document.getElementById("roomIdText").innerText = roomId;
 
-// 🏠 JOIN ROOM
-function joinRoom(){
-  room = document.getElementById("room").value;
-  document.getElementById("currentRoom").innerText = room;
+// 🪑 CREATE SEATS (8 SEATS)
+let seats = [];
 
-  db.ref("rooms/"+room+"/chat").on("child_added", snap=>{
-    let d = snap.val();
-    let div = document.createElement("div");
-    div.innerHTML = "💬 " + d.text;
-    document.getElementById("chatBox").appendChild(div);
-  });
+for(let i=0;i<8;i++){
+  seats.push(null);
 }
 
-// 💬 SEND CHAT
-function send(){
-  let msg = document.getElementById("msg").value;
-  if(!msg || !room) return;
+function renderSeats(){
 
-  db.ref("rooms/"+room+"/chat").push({
+  let box = document.getElementById("seats");
+  box.innerHTML = "";
+
+  seats.forEach((user, index)=>{
+
+    let div = document.createElement("div");
+    div.className = "seat";
+
+    if(user){
+      div.innerHTML = `
+        👤 ${user}<br>
+        <button onclick="mute(${index})">Mute</button>
+      `;
+    } else {
+      div.innerHTML = `<button onclick="joinSeat(${index})">Join Seat</button>`;
+    }
+
+    box.appendChild(div);
+  });
+
+}
+
+// 🪑 JOIN SEAT
+function joinSeat(index){
+  seats[index] = uid;
+
+  db.ref("rooms/"+roomId+"/seats").set(seats);
+
+  renderSeats();
+}
+
+// 🔇 MUTE (basic)
+function mute(index){
+  alert("Muted user (demo)");
+}
+
+// 💬 CHAT
+function sendMsg(){
+
+  let msg = document.getElementById("msg").value;
+  if(!msg) return;
+
+  db.ref("rooms/"+roomId+"/chat").push({
+    user: uid,
     text: msg
   });
 
-  document.getElementById("msg").value = "";
+  document.getElementById("msg").value="";
 }
 
-// 🪙 LOAD USER COINS
-function loadUser(){
-  if(!uid) return;
+// LIVE CHAT
+db.ref("rooms/"+roomId+"/chat").on("child_added", snap=>{
 
-  db.ref("users/"+uid).on("value", snap=>{
-    let data = snap.val();
+  let d = snap.val();
 
-    if(data){
-      coins = data.coins || 0;
-      document.getElementById("coins").innerText = coins;
-    }
-  });
-}
+  let div = document.createElement("div");
+  div.innerHTML = "💬 " + d.user + ": " + d.text;
 
-// 🪙 EARN COINS (SAVE TO FIREBASE)
-function earn(){
-  coins += 10;
+  document.getElementById("chatBox").appendChild(div);
 
-  db.ref("users/"+uid).update({
-    coins: coins
-  });
+});
 
-  document.getElementById("coins").innerText = coins;
-}
+// 🎁 GIFT
+function sendGift(type){
 
-// 🎁 GIFT SYSTEM
-function gift(type){
-
-  let cost = type=="rose"?10:20;
-
-  if(coins < cost){
-    alert("Not enough coins!");
-    return;
-  }
-
-  coins -= cost;
-
-  db.ref("users/"+uid).update({
-    coins: coins
+  db.ref("rooms/"+roomId+"/gifts").push({
+    user: uid,
+    type: type
   });
 
   alert("Gift sent 🎁");
 }
 
-// 🎤 MIC
+// 🎤 MIC (basic)
+let stream;
+
 async function startMic(){
   stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  document.getElementById("voice").innerText = "ON 🔊";
+  document.getElementById("voiceStatus").innerText = "ON 🔊";
 }
 
 function stopMic(){
   if(stream){
     stream.getTracks().forEach(t=>t.stop());
   }
-  document.getElementById("voice").innerText = "OFF";
+  document.getElementById("voiceStatus").innerText = "OFF";
 }
 
-// INIT
-loadUser();
+// LOAD SEATS
+db.ref("rooms/"+roomId+"/seats").on("value", snap=>{
+
+  let data = snap.val();
+
+  if(data){
+    seats = data;
+  }
+
+  renderSeats();
+
+});
+
+renderSeats();
 
 </script>
 
