@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Voice Chat PRO</title>
+</head>
+
+<body style="background:#0f172a;color:white;text-align:center">
+
+<h1>🎤 MF Voice Room PRO</h1>
+
+<input id="room" placeholder="Room ID">
+<button onclick="joinRoom()">Join</button>
+
+<p id="status">Not connected</p>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+const socket = io();
+
+let localStream;
+let peers = {};
+
+// JOIN ROOM
+function joinRoom(){
+  let roomId = document.getElementById("room").value;
+
+  socket.emit("join-room", roomId);
+
+  startVoice(roomId);
+}
+
+// START MIC
+async function startVoice(roomId){
+
+  localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+
+  document.getElementById("status").innerText = "Mic ON 🔊";
+
+  // When new user joins
+  socket.on("user-joined", async (userId) => {
+    createPeer(userId);
+  });
+
+  // Receive signal
+  socket.on("signal", async (data) => {
+
+    if(!peers[data.from]){
+      createPeer(data.from);
+    }
+
+    peers[data.from].setRemoteDescription(new RTCSessionDescription(data.signal));
+
+    if(data.signal.type === "offer"){
+      const answer = await peers[data.from].createAnswer();
+      await peers[data.from].setLocalDescription(answer);
+
+      socket.emit("signal", {
+        to: data.from,
+        signal: peers[data.from].localDescription
+      });
+    }
+
+  });
+
+}
+
+// CREATE PEER
+function createPeer(userId){
+
+  const pc = new RTCPeerConnection({
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  });
+
+  peers[userId] = pc;
+
+  localStream.getTracks().forEach(track=>{
+    pc.addTrack(track, localStream);
+  });
+
+  pc.onicecandidate = (event)=>{
+    if(event.candidate) return;
+  };
+
+  pc.ontrack = (event)=>{
+    let audio = document.createElement("audio");
+    audio.srcObject = event.streams[0];
+    audio.autoplay = true;
+    document.body.appendChild(audio);
+  };
+
+  pc.createOffer().then(offer=>{
+    pc.setLocalDescription(offer);
+
+    socket.emit("signal", {
+      to: userId,
+      signal: offer
+    });
+  });
+
+}
+</script>
+
+</body>
+</html>
